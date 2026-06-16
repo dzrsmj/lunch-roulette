@@ -1,0 +1,1610 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>今天吃什么 - 随机午餐选择器 | 解决每天纠结午饭的烦恼</title>
+<meta name="description" content="纠结午饭的每一秒，都是对生命的浪费。一键随机选择午餐，大转盘+美食日历+分享卡片，从此告别选择困难。">
+<!-- 百度统计 -->
+<script>
+var _hmt = _hmt || [];
+(function() {
+  var hm = document.createElement("script");
+  hm.src = "https://hm.baidu.com/hm.js?d45922a4f146749aa40606104912ac36";
+  var s = document.getElementsByTagName("script")[0];
+  s.parentNode.insertBefore(hm, s);
+})();
+</script>
+
+<style>
+  :root {
+    --bg: #0f0f0f;
+    --card: #1a1a1a;
+    --text: #e0e0e0;
+    --sub: #888;
+    --border: #2a2a2a;
+    --accent: #f0b90b;
+    --accent-dim: rgba(240,185,11,0.15);
+    --green: #4caf50;
+    --red: #e74c3c;
+    --radius: 14px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px;
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: hidden;
+  }
+  .container { max-width: 440px; width: 100%; }
+
+  /* ===== Header ===== */
+  .header {
+    text-align: center;
+    margin: 10px 0 16px;
+  }
+  .header h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+    background: linear-gradient(135deg, #f0b90b, #fcd535, #f0b90b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .header .sub {
+    font-size: 0.78rem;
+    color: var(--sub, #888);
+  }
+
+  /* ===== Capture area for share image ===== */
+  .capture-area {
+    /* Re-declare CSS variables here so html2canvas clone inherits them */
+    --bg: #0f0f0f;
+    --card: #1a1a1a;
+    --text: #e0e0e0;
+    --sub: #888;
+    --border: #2a2a2a;
+    --accent: #f0b90b;
+    --accent-dim: rgba(240,185,11,0.15);
+    --green: #4caf50;
+    --red: #e74c3c;
+    --radius: 14px;
+    background: var(--bg);
+    padding-bottom: 8px;
+  }
+
+  /* ===== Wheel section ===== */
+  .wheel-wrap {
+    position: relative;
+    width: 360px;
+    height: 360px;
+    margin: 0 auto 12px;
+  }
+  #wheelCanvas {
+    width: 360px;
+    height: 360px;
+    border-radius: 50%;
+    transition: box-shadow 0.3s;
+  }
+  #wheelCanvas.spinning {
+    box-shadow: 0 0 40px rgba(240,185,11,0.3), 0 0 80px rgba(240,185,11,0.1);
+  }
+  /* Particles layer — sits on top of wheel */
+  #particleCanvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 360px;
+    height: 360px;
+    pointer-events: none;
+    border-radius: 50%;
+  }
+  .pointer {
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 16px solid transparent;
+    border-right: 16px solid transparent;
+    border-top: 28px solid var(--accent);
+    filter: drop-shadow(0 2px 6px rgba(240,185,11,0.5));
+    z-index: 10;
+  }
+
+  /* ===== Spin button ===== */
+  .spin-btn-wrap {
+    text-align: center;
+    margin-bottom: 14px;
+  }
+  .btn-spin {
+    display: inline-block;
+    padding: 14px 48px;
+    background: linear-gradient(135deg, #c9940a, #e5a80e);
+    border: none;
+    border-radius: 30px;
+    color: #1a1a1a;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.05em;
+  }
+  .btn-spin:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(240,185,11,0.35); }
+  .btn-spin:active { transform: scale(0.96); }
+  .btn-spin:disabled {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+
+  /* ===== Result display ===== */
+  .result-area {
+    display: none;
+    text-align: center;
+    margin-bottom: 16px;
+    animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+  .result-area.show { display: block; }
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0.5); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .result-card {
+    background: var(--card, #1a1a1a);
+    border: 1px solid var(--accent, #f0b90b);
+    border-radius: var(--radius, 14px);
+    padding: 20px;
+    display: inline-block;
+    min-width: 200px;
+    box-shadow: 0 0 30px rgba(240,185,11,0.12);
+  }
+  .result-emoji {
+    font-size: 3rem;
+    display: block;
+    animation: bounce 0.6s ease 0.1s;
+  }
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-18px); }
+    60% { transform: translateY(-6px); }
+  }
+  .result-name {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent, #f0b90b);
+    margin: 6px 0 4px;
+  }
+  .result-tagline {
+    font-size: 0.8rem;
+    color: var(--sub, #888);
+    font-style: italic;
+  }
+  .result-history {
+    font-size: 0.72rem;
+    color: #666;
+    margin-top: 8px;
+  }
+  .result-history .warn {
+    color: var(--red, #e74c3c);
+  }
+  .result-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 10px;
+  }
+
+  /* ===== Buttons ===== */
+  .btn {
+    padding: 9px 18px;
+    border-radius: 20px;
+    border: 1px solid var(--border, #2a2a2a);
+    background: var(--card, #1a1a1a);
+    color: var(--text, #e0e0e0);
+    font-size: 0.82rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn:active { transform: scale(0.97); }
+  .btn.accent {
+    background: var(--accent, #f0b90b);
+    border-color: var(--accent, #f0b90b);
+    color: #000;
+    font-weight: 600;
+  }
+  .btn.ghost {
+    background: transparent;
+    border-color: #444;
+    color: #888;
+  }
+  .btn.ghost:hover { border-color: var(--accent, #f0b90b); color: var(--accent, #f0b90b); }
+
+  /* ===== Options panel ===== */
+  .section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .section-title {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--sub);
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .section-title .count {
+    font-size: 0.7rem;
+    color: #666;
+  }
+
+  /* Presets */
+  .preset-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 14px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid #2a2a2a;
+  }
+  .preset-tag {
+    padding: 5px 12px;
+    border-radius: 14px;
+    border: 1px solid #333;
+    background: #1e1e1e;
+    color: #bbb;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .preset-tag:hover { border-color: var(--accent, #f0b90b); color: var(--accent, #f0b90b); }
+  .preset-tag.used { background: var(--accent-dim, rgba(240,185,11,0.15)); border-color: var(--accent, #f0b90b); color: var(--accent, #f0b90b); }
+
+  /* Option list */
+  .option-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 28px;
+  }
+  .option-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px 5px 10px;
+    border-radius: 14px;
+    background: #1e1e1e;
+    border: 1px solid #333;
+    font-size: 0.8rem;
+  }
+  .option-item .del {
+    cursor: pointer;
+    color: #666;
+    font-size: 0.85rem;
+    line-height: 1;
+    padding: 0 2px;
+    transition: color 0.15s;
+  }
+  .option-item .del:hover { color: var(--red); }
+
+  /* Add input */
+  .add-row {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .add-row input {
+    flex: 1;
+    padding: 8px 12px;
+    border-radius: 18px;
+    border: 1px solid #333;
+    background: #1a1a1a;
+    color: var(--text);
+    font-size: 0.85rem;
+    outline: none;
+  }
+  .add-row input:focus { border-color: var(--accent); }
+  .add-row input::placeholder { color: #555; }
+
+  /* ===== History / Calendar ===== */
+  .history-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    text-align: center;
+  }
+  .history-grid .day-label {
+    font-size: 0.65rem;
+    color: #555;
+    padding: 4px 0;
+  }
+  .history-cell {
+    aspect-ratio: 1;
+    border-radius: 6px;
+    background: #1a1a1a;
+    border: 1px solid #222;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.6rem;
+    cursor: default;
+  }
+  .history-cell .h-date { font-size: 0.6rem; color: #666; }
+  .history-cell .h-emoji { font-size: 1rem; }
+  .history-cell.has-record {
+    background: var(--accent-dim);
+    border-color: rgba(240,185,11,0.3);
+  }
+  .history-cell.today { border-color: var(--accent); }
+
+  /* ===== Toast ===== */
+  .toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 10px 24px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    z-index: 999;
+    animation: toastIn 0.3s ease, toastOut 0.3s ease 1.8s forwards;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+  @keyframes toastIn { from { opacity: 0; top: 0; } to { opacity: 1; top: 20px; } }
+  @keyframes toastOut { to { opacity: 0; top: 0; } }
+
+  /* ===== Particle (global) ===== */
+  .particle {
+    position: fixed;
+    pointer-events: none;
+    z-index: 998;
+    animation: particleFly linear forwards;
+  }
+  @keyframes particleFly {
+    0% { opacity: 1; transform: translate(0, 0) rotate(0deg) scale(1); }
+    100% { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(0.3); }
+  }
+
+  /* ===== Share overlay ===== */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+  .overlay.show { display: flex; }
+  .share-dialog {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    max-width: 360px;
+    width: 90%;
+    text-align: center;
+  }
+  .share-dialog img {
+    width: 100%;
+    border-radius: 10px;
+    margin-bottom: 12px;
+  }
+  .share-dialog p {
+    font-size: 0.85rem;
+    color: var(--sub);
+    margin-bottom: 12px;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 10px;
+  }
+  .tab {
+    flex: 1;
+    text-align: center;
+    padding: 8px;
+    font-size: 0.8rem;
+    color: var(--sub);
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .footer {
+    text-align: center;
+    color: #444;
+    font-size: 0.7rem;
+    margin: 8px 0 30px;
+  }
+  .footer a { color: var(--sub); text-decoration: none; }
+  .footer a:hover { color: var(--accent); }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 380px) {
+    .wheel-wrap, #wheelCanvas, #particleCanvas {
+      width: 300px; height: 300px;
+    }
+    .header h1 { font-size: 1.3rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <!-- ====== Capture area for share image ====== -->
+  <div class="capture-area" id="captureArea">
+
+    <div class="header">
+      <h1>🍽️ 今天吃什么</h1>
+      <div class="sub">纠结午饭的每一秒，都是对生命的浪费</div>
+    </div>
+
+    <!-- Wheel -->
+    <div class="wheel-wrap" id="wheelWrap">
+      <div class="pointer"></div>
+      <canvas id="wheelCanvas" width="600" height="600"></canvas>
+      <canvas id="particleCanvas" width="600" height="600"></canvas>
+    </div>
+
+    <!-- Spin button -->
+    <div class="spin-btn-wrap">
+      <button class="btn-spin" id="spinBtn" onclick="spin()">🎰 转一下</button>
+    </div>
+
+    <!-- Result -->
+    <div class="result-area" id="resultArea">
+      <div class="result-card">
+        <span class="result-emoji" id="resultEmoji"></span>
+        <div class="result-name" id="resultName"></div>
+        <div class="result-tagline" id="resultTagline"></div>
+        <div class="result-history" id="resultHistory"></div>
+        <div class="result-actions">
+          <button class="btn accent" onclick="spin()">🔄 再转一次</button>
+          <button class="btn ghost" onclick="captureShare()">📤 分享结果</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /capture-area -->
+
+  <!-- ====== Options panel ====== -->
+  <div class="section">
+    <div class="section-title">
+      <span>📋 我的午餐选项</span>
+      <span style="display:flex;gap:8px;align-items:center;">
+        <span class="count" id="optionCount">0项</span>
+        <span style="cursor:pointer;font-size:0.7rem;color:var(--red);" onclick="clearOptions()" title="清空当前分类">清空</span>
+      </span>
+    </div>
+
+    <!-- Presets -->
+    <div class="preset-tags" id="presetTags">
+      <span class="preset-tag" data-preset="banshichang" onclick="loadPreset('banshichang')">🏢 公司附近</span>
+      <span class="preset-tag" data-preset="waimai" onclick="loadPreset('waimai')">🥡 外卖精选</span>
+      <span class="preset-tag" data-preset="ziji" onclick="loadPreset('ziji')">🍳 自己做</span>
+      <span class="preset-tag" data-preset="random" onclick="loadPreset('random')">🤔 AI随机</span>
+    </div>
+
+    <!-- Current options -->
+    <div class="option-list" id="optionList"></div>
+
+    <!-- Add input -->
+    <div class="add-row">
+      <input type="text" id="addInput" placeholder="输入菜名，如：麻辣烫、沙县小吃…" maxlength="20" autocomplete="off">
+      <button class="btn accent" onclick="addOption()">➕ 添加</button>
+    </div>
+  </div>
+
+  <!-- ====== History panel ====== -->
+  <div class="section">
+    <div class="section-title">
+      <span>📅 午餐日历</span>
+      <span style="display:flex;gap:8px;">
+        <span class="count" id="historyCount">本月0次</span>
+        <span style="cursor:pointer;font-size:0.7rem;color:var(--red);" onclick="clearHistory()">清空</span>
+      </span>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs">
+      <div class="tab active" data-tab="calendar" onclick="switchHistoryTab('calendar')">📅 日历</div>
+      <div class="tab" data-tab="stats" onclick="switchHistoryTab('stats')">📊 统计</div>
+    </div>
+
+    <!-- Calendar view -->
+    <div id="historyCalendar">
+      <div class="history-grid" id="calGrid">
+        <div class="day-label">日</div><div class="day-label">一</div><div class="day-label">二</div>
+        <div class="day-label">三</div><div class="day-label">四</div><div class="day-label">五</div><div class="day-label">六</div>
+      </div>
+    </div>
+
+    <!-- Stats view -->
+    <div id="historyStats" style="display:none;">
+      <div id="statsContent" style="font-size:0.82rem;color:var(--sub);line-height:1.8;"></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    公众号 <b>DT成长空间</b> · <a href="#" onclick="resetAll();return false;">重置全部</a>
+  </div>
+
+</div>
+
+<!-- ====== Share overlay ====== -->
+<div class="overlay" id="shareOverlay" onclick="closeShare()">
+  <div class="share-dialog" onclick="event.stopPropagation()">
+    <p>📤 分享今天吃啥</p>
+    <img id="shareImage" src="" alt="分享图">
+    <div style="display:flex;gap:8px;">
+      <button class="btn accent" style="flex:1;" id="copyShareBtn" onclick="copyShareImage()">📋 复制图片</button>
+      <button class="btn" style="flex:1;" onclick="downloadShareImage()">💾 保存图片</button>
+    </div>
+    <button class="btn ghost" style="width:100%;margin-top:8px;" onclick="closeShare()">关闭</button>
+  </div>
+</div>
+
+<!-- ====== Reset confirm overlay ====== -->
+<div class="overlay" id="resetOverlay">
+  <div class="share-dialog" style="max-width:280px;">
+    <p style="margin-bottom:14px;">确定要重置全部数据吗？<br>选项和记录都将被清除。</p>
+    <div style="display:flex;gap:8px;">
+      <button class="btn" style="flex:1;" onclick="document.getElementById('resetOverlay').classList.remove('show')">取消</button>
+      <button class="btn" style="flex:1;color:var(--red);border-color:var(--red);" onclick="doReset()">确定重置</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// ============================
+//  STATE
+// ============================
+const STORAGE_KEY = 'lunch_roulette';
+const PRESETS_KEY = 'lunch_roulette_presets';
+const PRESETS = {
+  banshichang: [
+    { name: '兰州拉面', emoji: '🍜' },
+    { name: '沙县小吃', emoji: '🥟' },
+    { name: '黄焖鸡米饭', emoji: '🍗' },
+    { name: '隆江猪脚饭', emoji: '🍖' },
+    { name: '麻辣烫', emoji: '🥘' },
+    { name: '煲仔饭', emoji: '🍚' },
+    { name: '重庆小面', emoji: '🍝' },
+    { name: '牛杂粉', emoji: '🐂' },
+  ],
+  waimai: [
+    { name: '轻食沙拉', emoji: '🥗' },
+    { name: '日式便当', emoji: '🍱' },
+    { name: '酸菜鱼', emoji: '🐟' },
+    { name: '韩式炸鸡', emoji: '🍗' },
+    { name: '披萨', emoji: '🍕' },
+    { name: '汉堡薯条', emoji: '🍔' },
+    { name: '寿司拼盘', emoji: '🍣' },
+    { name: '越南河粉', emoji: '🍲' },
+  ],
+  ziji: [
+    { name: '煮泡面', emoji: '🍜' },
+    { name: '蛋炒饭', emoji: '🍳' },
+    { name: '煎饺子', emoji: '🥟' },
+    { name: '三明治', emoji: '🥪' },
+    { name: '小火锅', emoji: '🫕' },
+    { name: '速冻水饺', emoji: '🥟' },
+    { name: '拌面', emoji: '🍝' },
+    { name: '剩菜热一热', emoji: '♨️' },
+  ],
+  random: [
+    { name: '盲盒外卖', emoji: '🎁' },
+    { name: '川菜盲选', emoji: '🌶️' },
+    { name: '粤菜盲选', emoji: '🥢' },
+    { name: '日料盲选', emoji: '🍣' },
+    { name: '韩料盲选', emoji: '🇰🇷' },
+    { name: '随机菜系', emoji: '🎲' },
+    { name: '楼下便利店', emoji: '🏪' },
+    { name: '看啥吃啥', emoji: '👀' },
+  ]
+};
+
+const TAGLINES = [
+  '命运的齿轮开始转动…',
+  '今天就是它了！',
+  '天选之饭，不容拒绝',
+  '宇宙说你今天吃这个',
+  '别纠结了，冲！',
+  '今日份的快乐源泉',
+  '吃货雷达已锁定',
+  '胃已就位，就等你了',
+  '随机但不随便',
+  '厨房在召唤！',
+  '大脑：就它了，别问了',
+  '不选了，就是它',
+];
+
+// Load / Save
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return { options: [], history: {}, activePreset: 'banshichang' };
+}
+function save(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+// Editable presets — stored separately so users can customize each category
+function loadPresets() {
+  try {
+    const raw = localStorage.getItem(PRESETS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  // First run: seed from hardcoded defaults
+  const seed = JSON.parse(JSON.stringify(PRESETS));
+  savePresets(seed);
+  return seed;
+}
+function savePresets(p) { localStorage.setItem(PRESETS_KEY, JSON.stringify(p)); }
+
+// ============================
+//  CANVAS WHEEL
+// ============================
+const wheelCanvas = document.getElementById('wheelCanvas');
+const wheelCtx = wheelCanvas.getContext('2d');
+const particleCanvas = document.getElementById('particleCanvas');
+const particleCtx = particleCanvas.getContext('2d');
+const W = wheelCanvas.width;   // 600
+const H = wheelCanvas.height;  // 600
+const CX = W / 2;
+const CY = H / 2;
+const R = 260; // wheel radius in canvas pixels
+
+// Colors for sectors
+const SECTOR_COLORS = [
+  '#2a1a0a', '#1a2010', '#0a1a1a', '#1a0a1a',
+  '#201a0a', '#0a1a20', '#1a1a0a', '#200a1a',
+  '#0a2010', '#1a0a0a', '#0a201a', '#101a20',
+];
+
+let currentAngle = 0;          // radians, current rotation offset
+let spinState = 'idle';       // 'idle' | 'spinning'
+let spinStartTime = 0;
+let spinDuration = 0;
+let spinStartAngle = 0;
+let spinTotalAngle = 0;
+let animId = null;
+
+function getOptions() {
+  const data = load();
+  // Always use current options if non-empty (even 1 item, so wheel stays in sync with list)
+  if (data.options.length > 0) return data.options;
+  // Truly empty: fallback to active preset, then hardcoded
+  const presets = loadPresets();
+  let fallback = presets[data.activePreset] || presets.banshichang;
+  if (!fallback || fallback.length === 0) fallback = PRESETS[data.activePreset] || PRESETS.banshichang;
+  return fallback;
+}
+
+function drawWheel(angle) {
+  const options = getOptions();
+  const count = options.length;
+  const sectorAngle = (2 * Math.PI) / count;
+
+  wheelCtx.clearRect(0, 0, W, H);
+
+  // Draw sectors
+  for (let i = 0; i < count; i++) {
+    const start = angle + i * sectorAngle;
+    const end = start + sectorAngle;
+
+    wheelCtx.beginPath();
+    wheelCtx.moveTo(CX, CY);
+    wheelCtx.arc(CX, CY, R, start, end);
+    wheelCtx.closePath();
+
+    wheelCtx.fillStyle = SECTOR_COLORS[i % SECTOR_COLORS.length];
+    wheelCtx.fill();
+
+    // Subtle sector border
+    wheelCtx.strokeStyle = 'rgba(255,255,255,0.06)';
+    wheelCtx.lineWidth = 1;
+    wheelCtx.stroke();
+  }
+
+  // Center circle decoration
+  wheelCtx.beginPath();
+  wheelCtx.arc(CX, CY, 38, 0, 2 * Math.PI);
+  wheelCtx.fillStyle = '#1a1a1a';
+  wheelCtx.fill();
+  wheelCtx.strokeStyle = '#333';
+  wheelCtx.lineWidth = 2;
+  wheelCtx.stroke();
+
+  // Text on sectors — emoji at inner radius, name at outer radius
+  for (let i = 0; i < count; i++) {
+    const midAngle = angle + i * sectorAngle + sectorAngle / 2;
+
+    // Emoji — inner position
+    const emojiR = R * 0.62;
+    const ex = CX + Math.cos(midAngle) * emojiR;
+    const ey = CY + Math.sin(midAngle) * emojiR;
+
+    wheelCtx.save();
+    wheelCtx.translate(ex, ey);
+    wheelCtx.rotate(midAngle + Math.PI / 2);
+    wheelCtx.font = '30px sans-serif';
+    wheelCtx.textAlign = 'center';
+    wheelCtx.textBaseline = 'middle';
+    wheelCtx.fillText(options[i].emoji, 0, 0);
+    wheelCtx.restore();
+
+    // Name — outer position, near edge. Truncate long names to fit sector.
+    const fullName = options[i].name;
+    const maxLen = options.length <= 4 ? 10 : (options.length <= 6 ? 8 : 6);
+    const dispName = fullName.length > maxLen ? fullName.slice(0, maxLen) + '…' : fullName;
+    const nameR = R * 0.90;
+    const nx = CX + Math.cos(midAngle) * nameR;
+    const ny = CY + Math.sin(midAngle) * nameR;
+
+    wheelCtx.save();
+    wheelCtx.translate(nx, ny);
+    wheelCtx.rotate(midAngle + Math.PI / 2);
+    // Slightly smaller font if truncated
+    const nameFont = dispName.length > 7 ? 'bold 18px' : 'bold 22px';
+    wheelCtx.font = nameFont + ' -apple-system, sans-serif';
+    wheelCtx.fillStyle = '#e0e0e0';
+    wheelCtx.textAlign = 'center';
+    wheelCtx.textBaseline = 'middle';
+    wheelCtx.fillText(dispName, 0, 0);
+    wheelCtx.restore();
+  }
+
+  // Outer ring
+  wheelCtx.beginPath();
+  wheelCtx.arc(CX, CY, R + 8, 0, 2 * Math.PI);
+  wheelCtx.strokeStyle = 'rgba(240,185,11,0.4)';
+  wheelCtx.lineWidth = 3;
+  wheelCtx.stroke();
+
+  // Tick marks around outer ring
+  for (let i = 0; i < count; i++) {
+    const tickAngle = angle + i * sectorAngle;
+    const innerR = R + 3;
+    const outerR = R + 14;
+    wheelCtx.beginPath();
+    wheelCtx.moveTo(CX + Math.cos(tickAngle) * innerR, CY + Math.sin(tickAngle) * innerR);
+    wheelCtx.lineTo(CX + Math.cos(tickAngle) * outerR, CY + Math.sin(tickAngle) * outerR);
+    wheelCtx.strokeStyle = 'rgba(240,185,11,0.6)';
+    wheelCtx.lineWidth = 2;
+    wheelCtx.stroke();
+  }
+}
+
+// Draw idle state
+function renderWheel() {
+  drawWheel(currentAngle);
+}
+
+// ============================
+//  PARTICLES (on particle canvas — relative to wheel)
+// ============================
+let particles = [];
+const FOOD_EMOJIS = ['🍜','🍛','🍝','🥟','🌮','🍕','🍔','🥗','🍱','🍗','🍖','🥘','🍚','🍣','🍲','🫕','🌯','🥙','🧆','🥩'];
+
+function spawnWheelParticles(count) {
+  for (let i = 0; i < count; i++) {
+    const angle = Math.random() * 2 * Math.PI;
+    const dist = R * (0.85 + Math.random() * 0.25);
+    particles.push({
+      x: CX + Math.cos(angle) * dist,
+      y: CY + Math.sin(angle) * dist,
+      vx: (Math.random() - 0.5) * 4,
+      vy: (Math.random() - 0.5) * 4 - 2,
+      life: 1,
+      decay: 0.012 + Math.random() * 0.025,
+      emoji: FOOD_EMOJIS[Math.floor(Math.random() * FOOD_EMOJIS.length)],
+      size: 14 + Math.random() * 18,
+    });
+  }
+  window._ensureParticleLoop?.();
+}
+
+function updateParticles() {
+  particleCtx.clearRect(0, 0, W, H);
+  particles = particles.filter(p => p.life > 0);
+  for (const p of particles) {
+    p.x += p.vx;
+    p.y += p.vy;
+    p.vy += 0.05; // gravity
+    p.life -= p.decay;
+    p.size *= 0.998;
+
+    particleCtx.save();
+    particleCtx.globalAlpha = p.life;
+    particleCtx.font = `${p.size}px sans-serif`;
+    particleCtx.textAlign = 'center';
+    particleCtx.textBaseline = 'middle';
+    particleCtx.fillText(p.emoji, p.x, p.y);
+    particleCtx.restore();
+  }
+}
+
+// ============================
+//  GLOBAL PARTICLES (screen-level burst on result) — reusing wage-calculator pattern
+// ============================
+function spawnGlobalParticles() {
+  const count = 20 + Math.floor(Math.random() * 15);
+  for (let i = 0; i < count; i++) {
+    setTimeout(() => {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.textContent = FOOD_EMOJIS[Math.floor(Math.random() * FOOD_EMOJIS.length)];
+      p.style.left = '50%';
+      p.style.top = '45%';
+      p.style.fontSize = (1.5 + Math.random() * 2.5) + 'rem';
+      p.style.setProperty('--dx', ((Math.random() - 0.5) * 400) + 'px');
+      p.style.setProperty('--dy', ((Math.random() - 0.5) * 400 - 60) + 'px');
+      p.style.setProperty('--rot', ((Math.random() - 0.5) * 720) + 'deg');
+      p.style.animationDuration = (1 + Math.random() * 1.5) + 's';
+      document.body.appendChild(p);
+      p.addEventListener('animationend', () => p.remove());
+    }, i * 30 + Math.random() * 100);
+  }
+}
+
+// ============================
+//  SPIN LOGIC
+// ============================
+function spin() {
+  if (spinState === 'spinning') return;
+
+  const options = getOptions();
+  if (options.length < 2) {
+    showToast('⚠️ 至少需要2个选项才能转');
+    return;
+  }
+
+  // Hide previous result
+  document.getElementById('resultArea').classList.remove('show');
+
+  spinState = 'spinning';
+  const btn = document.getElementById('spinBtn');
+  btn.disabled = true;
+  btn.textContent = '🎰 转转转...';
+  document.getElementById('wheelCanvas').classList.add('spinning');
+
+  // Pick random target
+  const targetIdx = Math.floor(Math.random() * options.length);
+  const sectorAngle = (2 * Math.PI) / options.length;
+
+  // The pointer is at the TOP (angle = -PI/2 or 3PI/2).
+  // We need the sector at targetIdx to end up at the top.
+  // The center of sector i is at: currentAngle + i * sectorAngle + sectorAngle/2
+  // We want that to equal 3*PI/2 (pointing up, where pointer is).
+  // So target center angle = 3*PI/2
+  // currentAngle + targetIdx * sectorAngle + sectorAngle/2 + totalSpin = 3*PI/2 + fullTurns*2PI
+  // totalSpin = 3*PI/2 - currentAngle - targetIdx * sectorAngle - sectorAngle/2 + fullTurns * 2PI
+
+  const fullTurns = 5 + Math.floor(Math.random() * 4); // 5-8 full rotations
+  const targetCenterAngle = 3 * Math.PI / 2; // pointer at top
+  const baseTarget = targetCenterAngle - sectorAngle / 2 - targetIdx * sectorAngle;
+
+  // Normalize to positive
+  let rawAngle = baseTarget - currentAngle;
+  while (rawAngle < 0) rawAngle += 2 * Math.PI;
+
+  const totalAngle = rawAngle + fullTurns * 2 * Math.PI;
+
+  spinStartTime = performance.now();
+  spinDuration = 3000 + Math.random() * 500; // 3-3.5s
+  spinStartAngle = currentAngle;
+  spinTotalAngle = totalAngle;
+
+  // Start particle emission during spin
+  spawnWheelParticles(20);
+
+  // Start animation
+  if (animId) cancelAnimationFrame(animId);
+  animateSpin();
+}
+
+function easeOutCubic(t) {
+  return 1 - Math.pow(1 - t, 3);
+}
+
+function animateSpin(ts) {
+  if (!ts) ts = performance.now();
+  const elapsed = ts - spinStartTime;
+  const progress = Math.min(1, elapsed / spinDuration);
+  const easedProgress = easeOutCubic(progress);
+
+  currentAngle = spinStartAngle + spinTotalAngle * easedProgress;
+  drawWheel(currentAngle);
+
+  // Emit particles during spin (peak in middle)
+  if (progress < 0.85) {
+    if (Math.random() < 0.5) spawnWheelParticles(2);
+  }
+  updateParticles();
+
+  if (progress < 1) {
+    animId = requestAnimationFrame(animateSpin);
+  } else {
+    // Spin complete
+    onSpinComplete();
+  }
+}
+
+function onSpinComplete() {
+  spinState = 'idle';
+  document.getElementById('wheelCanvas').classList.remove('spinning');
+  const btn = document.getElementById('spinBtn');
+  btn.disabled = false;
+  btn.textContent = '🎰 转一下';
+
+  // Determine result
+  const options = getOptions();
+  const sectorAngle = (2 * Math.PI) / options.length;
+  // The pointer at top (3*PI/2). Find which sector's arc covers that angle.
+  // Sector i covers: [currentAngle + i*sectorAngle, currentAngle + (i+1)*sectorAngle)
+  const pointerAngle = (3 * Math.PI / 2) % (2 * Math.PI);
+  let normalized = ((pointerAngle - currentAngle) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+  const idx = Math.floor(normalized / sectorAngle) % options.length;
+  const result = options[idx];
+
+  // Show result
+  showResult(result);
+
+  // Save to history
+  const data = load();
+  const today = getDateStr();
+  data.history[today] = { name: result.name, emoji: result.emoji };
+  save(data);
+
+  // Refresh calendar and stats to show the new record
+  renderCalendar();
+  document.getElementById('historyCount').textContent =
+    `本月${Object.keys(data.history).filter(k => k.startsWith(today.slice(0, 7))).length}次`;
+
+  // Particles all done
+  updateParticles();
+
+  // Global burst
+  spawnGlobalParticles();
+}
+
+// ============================
+//  RESULT DISPLAY
+// ============================
+function showResult(option) {
+  const area = document.getElementById('resultArea');
+  document.getElementById('resultEmoji').textContent = option.emoji;
+  document.getElementById('resultName').textContent = option.name;
+  document.getElementById('resultTagline').textContent = TAGLINES[Math.floor(Math.random() * TAGLINES.length)];
+
+  // History check — include today's new pick (not yet saved at this point)
+  const data = load();
+  const today = getDateStr();
+  const sortedAll = Object.entries(data.history).sort((a, b) => b[0].localeCompare(a[0]));
+
+  // Count consecutive same-food days with date continuity (today counts as day 1)
+  let consecutiveCount = 1;
+  let checkDate = new Date();
+  checkDate.setDate(checkDate.getDate() - 1); // start from yesterday
+  for (const [date, rec] of sortedAll) {
+    const expectedStr = getDateStrFrom(checkDate);
+    if (date === expectedStr && rec.name === option.name) {
+      consecutiveCount++;
+      checkDate.setDate(checkDate.getDate() - 1);
+    } else {
+      break;
+    }
+  }
+
+  // Find previous occurrence of same food in existing history
+  const prevSame = sortedAll.find(([date, rec]) => rec.name === option.name);
+
+  let histHtml = '';
+  if (consecutiveCount >= 3) {
+    histHtml = `<span class="warn">⚠️ 你已连续${consecutiveCount}天吃${option.name}了，要不换个口味？</span>`;
+  } else if (prevSame) {
+    histHtml = `上次吃是 ${timeAgo(prevSame[0])}`;
+  } else {
+    histHtml = '第一次吃这个！新尝试 ✨';
+  }
+  document.getElementById('resultHistory').innerHTML = histHtml;
+
+  // Re-trigger animation
+  area.classList.remove('show');
+  void area.offsetWidth;
+  area.classList.add('show');
+}
+
+// ============================
+//  OPTIONS MANAGEMENT
+// ============================
+function addOption() {
+  const input = document.getElementById('addInput');
+  const name = input.value.trim();
+  if (!name) return;
+
+  const data = load();
+  // Dedup
+  if (data.options.some(o => o.name === name)) {
+    showToast('⚠️ 这个选项已存在');
+    return;
+  }
+  // Auto-assign emoji based on name
+  const emoji = guessEmoji(name);
+  const newItem = { name, emoji };
+  data.options.push(newItem);
+  save(data);
+
+  // Also add to the active preset in editable presets
+  const presets = loadPresets();
+  const key = data.activePreset || 'banshichang';
+  if (presets[key]) {
+    if (!presets[key].some(o => o.name === name)) {
+      presets[key].push(newItem);
+      savePresets(presets);
+    }
+  }
+
+  input.value = '';
+  input.focus();
+  renderAll();
+}
+
+function removeOption(idx) {
+  const data = load();
+  const removed = data.options[idx];
+  data.options.splice(idx, 1);
+  save(data);
+
+  // Also remove from the active preset
+  const presets = loadPresets();
+  const key = data.activePreset || 'banshichang';
+  if (presets[key]) {
+    presets[key] = presets[key].filter(o => o.name !== removed.name);
+    savePresets(presets);
+  }
+
+  renderAll();
+  showToast(`已移除「${removed.name}」`);
+}
+
+function clearOptions() {
+  const data = load();
+  if (data.options.length === 0) return;
+  data.options = [];
+  save(data);
+
+  // Also clear the active preset
+  const presets = loadPresets();
+  const key = data.activePreset || 'banshichang';
+  if (presets[key]) {
+    presets[key] = [];
+    savePresets(presets);
+  }
+
+  renderAll();
+  showToast('🗑️ 已清空当前分类');
+}
+
+function guessEmoji(name) {
+  const map = {
+    '面': '🍜', '饭': '🍚', '粉': '🍝', '饺': '🥟', '鸡': '🍗',
+    '鱼': '🐟', '牛': '🐂', '猪': '🐷', '虾': '🦐', '蟹': '🦀',
+    '菜': '🥬', '汤': '🍲', '锅': '🫕', '堡': '🍔', '饼': '🫓',
+    '串': '🍢', '肉': '🍖', '蛋': '🍳', '豆': '🫘', '辣': '🌶️',
+    '沙': '🥗', '沙拉': '🥗', '披萨': '🍕', '寿司': '🍣', '三明治': '🥪',
+    '麻辣烫': '🥘', '火锅': '🫕', '拌': '🥙', '炸': '🍗', '烤': '🥩',
+    '粥': '🥣', '包': '🥟', '煮': '🍲', '炒': '🍳', '烧': '🥘',
+    '甜': '🍰', '酸': '🍋', '盲': '🎲', '便利': '🏪',
+  };
+  for (const [key, emoji] of Object.entries(map)) {
+    if (name.includes(key)) return emoji;
+  }
+  return '🍽️';
+}
+
+function loadPreset(presetKey) {
+  const presets = loadPresets();
+  const preset = presets[presetKey];
+  if (!preset) return;
+
+  const data = load();
+  // Switch mode: replace current options with this category's items
+  data.options = preset.map(item => ({ ...item }));
+  data.activePreset = presetKey;
+  save(data);
+  renderAll();
+  showToast(`✅ 已切换到「${getPresetLabel(presetKey)}」（${preset.length}项）`);
+}
+
+function getPresetLabel(key) {
+  const map = { banshichang: '公司附近', waimai: '外卖精选', ziji: '自己做', random: 'AI随机' };
+  return map[key] || key;
+}
+
+// ============================
+//  HISTORY / CALENDAR
+// ============================
+let historyTab = 'calendar';
+
+function switchHistoryTab(tab) {
+  historyTab = tab;
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+  document.getElementById('historyCalendar').style.display = tab === 'calendar' ? '' : 'none';
+  document.getElementById('historyStats').style.display = tab === 'stats' ? '' : 'none';
+  if (tab === 'stats') renderStats();
+}
+
+function renderCalendar() {
+  const data = load();
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth(); // 0-based
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const todayStr = getDateStr();
+  const todayNum = now.getDate();
+
+  const grid = document.getElementById('calGrid');
+  // Clear all cells except first row (day labels)
+  while (grid.children.length > 7) grid.lastChild.remove();
+
+  // Add empty cells before first day
+  for (let i = 0; i < firstDay; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'history-cell';
+    cell.style.opacity = '0.3';
+    grid.appendChild(cell);
+  }
+
+  // Add day cells
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const rec = data.history[dateStr];
+    const cell = document.createElement('div');
+    cell.className = 'history-cell';
+    if (rec) cell.classList.add('has-record');
+    if (d === todayNum) cell.classList.add('today');
+
+    cell.innerHTML = `
+      <span class="h-date">${d}</span>
+      ${rec ? `<span class="h-emoji">${rec.emoji}</span>` : ''}
+    `;
+    if (rec) cell.title = rec.name;
+    grid.appendChild(cell);
+  }
+
+  // Count
+  const monthPrefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+  const monthCount = Object.keys(data.history).filter(k => k.startsWith(monthPrefix)).length;
+  document.getElementById('historyCount').textContent = `本月${monthCount}次`;
+}
+
+function renderStats() {
+  const data = load();
+  const histEntries = Object.entries(data.history);
+  if (histEntries.length === 0) {
+    document.getElementById('statsContent').innerHTML = '<p style="color:#666;">还没有记录，转一次转盘吧！</p>';
+    return;
+  }
+
+  // Count frequency
+  const freq = {};
+  for (const [, rec] of histEntries) {
+    freq[rec.name] = (freq[rec.name] || 0) + 1;
+  }
+  const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]);
+
+  // Days since first record
+  const dates = histEntries.map(e => e[0]).sort();
+  const firstDate = dates[0];
+  const lastDate = dates[dates.length - 1];
+
+  // Consecutive days
+  let streak = 0;
+  const today = getDateStr();
+  const yesterday = getDateStr(-1);
+  if (data.history[today] || data.history[yesterday]) {
+    let check = new Date();
+    if (!data.history[today]) check.setDate(check.getDate() - 1);
+    while (true) {
+      const ds = getDateStrFrom(check);
+      if (data.history[ds]) {
+        streak++;
+        check.setDate(check.getDate() - 1);
+      } else break;
+    }
+  }
+
+  let html = `
+    <div style="display:flex;gap:16px;margin-bottom:12px;justify-content:space-around;text-align:center;">
+      <div><div style="font-size:1.4rem;font-weight:700;color:var(--accent);">${histEntries.length}</div><div style="font-size:0.7rem;color:#666;">总记录</div></div>
+      <div><div style="font-size:1.4rem;font-weight:700;color:var(--green);">${streak}</div><div style="font-size:0.7rem;color:#666;">连续天</div></div>
+      <div><div style="font-size:1.4rem;font-weight:700;color:#fff;">${sorted.length}</div><div style="font-size:0.7rem;color:#666;">种类</div></div>
+    </div>
+    <div style="font-size:0.75rem;color:var(--sub);">🏆 最爱排行榜</div>
+  `;
+  for (const [name, count] of sorted.slice(0, 8)) {
+    const bar = '█'.repeat(Math.min(count, 20));
+    html += `<div style="display:flex;justify-content:space-between;margin:2px 0;"><span>${name}</span><span style="color:var(--accent);">${bar} ${count}次</span></div>`;
+  }
+
+  document.getElementById('statsContent').innerHTML = html;
+}
+
+// ============================
+//  SHARE — manual canvas drawing (no html2canvas dependency needed)
+// ============================
+let shareCanvas = null;
+
+function captureShare() {
+  const shareBtn = document.querySelector('.result-actions .btn.ghost');
+  if (shareBtn) {
+    shareBtn.disabled = true;
+    shareBtn.textContent = '⏳ 生成中...';
+  }
+
+  const resultName = document.getElementById('resultName').textContent;
+  const resultEmoji = document.getElementById('resultEmoji').textContent;
+  const resultTagline = document.getElementById('resultTagline').textContent;
+  const wheelSrc = document.getElementById('wheelCanvas');
+
+  const W = 600; // logical width — layout code uses this
+  const SCALE = 2;
+
+  // First pass: measure height on a scratch canvas (size doesn't matter, just layout)
+  const tmp = document.createElement('canvas');
+  tmp.width = W;
+  tmp.height = 2000;
+  const totalH = drawShareContent(tmp.getContext('2d'), W, resultEmoji, resultName, resultTagline, wheelSrc);
+
+  // Final canvas at 2x resolution
+  const c = document.createElement('canvas');
+  c.width = W * SCALE;
+  c.height = totalH * SCALE;
+  const ctx = c.getContext('2d');
+  ctx.scale(SCALE, SCALE);
+  drawShareContent(ctx, W, resultEmoji, resultName, resultTagline, wheelSrc);
+
+  shareCanvas = c;
+  const url = c.toDataURL('image/png');
+  document.getElementById('shareImage').src = url;
+  document.getElementById('shareOverlay').classList.add('show');
+  if (shareBtn) {
+    shareBtn.disabled = false;
+    shareBtn.textContent = '📤 分享结果';
+  }
+}
+
+function drawShareContent(ctx, W, resultEmoji, resultName, resultTagline, wheelSrc) {
+  const PAD = 40;
+  let y = 30;
+
+  ctx.fillStyle = '#0f0f0f';
+  ctx.fillRect(0, 0, W, 3000); // large enough to cover any layout
+
+  // Title
+  ctx.fillStyle = '#f0b90b';
+  ctx.font = 'bold 28px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('🍽️ 今天吃什么', W / 2, y + 30);
+  y += 56;
+
+  // Subtitle
+  ctx.fillStyle = '#888';
+  ctx.font = '15px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillText('纠结午饭的每一秒，都是对生命的浪费', W / 2, y + 18);
+  y += 38;
+
+  // Wheel
+  const wheelSize = 340;
+  const wheelX = (W - wheelSize) / 2;
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(W / 2, y + wheelSize / 2, wheelSize / 2, 0, 2 * Math.PI);
+  ctx.clip();
+  ctx.drawImage(wheelSrc, wheelX, y, wheelSize, wheelSize);
+  ctx.restore();
+  ctx.beginPath();
+  ctx.arc(W / 2, y + wheelSize / 2, wheelSize / 2 + 6, 0, 2 * Math.PI);
+  ctx.strokeStyle = 'rgba(240,185,11,0.5)';
+  ctx.lineWidth = 4;
+  ctx.stroke();
+
+  // Pointer — match CSS: tip slightly into wheel, base above wheel
+  const ptrCX = W / 2;
+  const ptrTipY = y + 12;   // tip just inside wheel (like CSS top:-14 + border-top:28 = 14px in)
+  const ptrBaseY = y - 14;  // base above wheel (like CSS top:-14)
+  ctx.beginPath();
+  ctx.moveTo(ptrCX, ptrTipY);
+  ctx.lineTo(ptrCX - 16, ptrBaseY);
+  ctx.lineTo(ptrCX + 16, ptrBaseY);
+  ctx.closePath();
+  ctx.fillStyle = '#f0b90b';
+  ctx.fill();
+
+  y += wheelSize + 20;
+
+  // Result card
+  const cardW = 320;
+  const cardX = (W - cardW) / 2;
+  const cardPad = 24;
+  const cardTop = y;
+  const emojiH = 60;
+  const nameH = 34;
+  const tagH = 22;
+  const cardH = cardPad + emojiH + 8 + nameH + 4 + tagH + cardPad;
+
+  roundRectCanvas(ctx, cardX, cardTop, cardW, cardH, 14, '#1a1a1a');
+  ctx.strokeStyle = '#f0b90b';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  roundRectCanvasPath(ctx, cardX, cardTop, cardW, cardH, 14);
+  ctx.stroke();
+
+  ctx.fillStyle = '#e0e0e0';
+  ctx.font = '52px sans-serif';
+  ctx.fillText(resultEmoji, W / 2, cardTop + cardPad + emojiH - 8);
+
+  ctx.fillStyle = '#f0b90b';
+  ctx.font = 'bold 26px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillText(resultName, W / 2, cardTop + cardPad + emojiH + 8 + nameH - 6);
+
+  ctx.fillStyle = '#888';
+  ctx.font = 'italic 15px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillText(resultTagline, W / 2, cardTop + cardPad + emojiH + 8 + nameH + 4 + tagH);
+
+  y = cardTop + cardH + 24;
+
+  // Footer
+  ctx.fillStyle = '#555';
+  ctx.font = '13px -apple-system, BlinkMacSystemFont, sans-serif';
+  ctx.fillText('公众号 DT成长空间', W / 2, y + 14);
+  y += 36;
+
+  // Return total height for caller to size canvas
+  return y;
+}
+
+// Helper: rounded rect (fill)
+function roundRectCanvas(ctx, x, y, w, h, r, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  roundRectCanvasPath(ctx, x, y, w, h, r);
+  ctx.fill();
+}
+// Helper: rounded rect (path only)
+function roundRectCanvasPath(ctx, x, y, w, h, r) {
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.arcTo(x + w, y, x + w, y + r, r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+  ctx.lineTo(x + r, y + h);
+  ctx.arcTo(x, y + h, x, y + h - r, r);
+  ctx.lineTo(x, y + r);
+  ctx.arcTo(x, y, x + r, y, r);
+  ctx.closePath();
+}
+
+function closeShare() {
+  document.getElementById('shareOverlay').classList.remove('show');
+  shareCanvas = null;
+}
+
+// Copy image to clipboard (chupian-style: paste directly into WeChat)
+async function copyShareImage() {
+  if (!shareCanvas) return;
+  const btn = document.getElementById('copyShareBtn');
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ 复制中...';
+  try {
+    const blob = await new Promise((resolve, reject) => {
+      shareCanvas.toBlob(b => b ? resolve(b) : reject(new Error('blob failed')), 'image/png');
+    });
+    const item = new ClipboardItem({ 'image/png': blob });
+    await navigator.clipboard.write([item]);
+    btn.textContent = '✅ 已复制，去微信粘贴';
+    showToast('✅ 图片已复制，去微信粘贴即可');
+  } catch (e) {
+    try {
+      const dataUrl = shareCanvas.toDataURL('image/png');
+      await navigator.clipboard.writeText(dataUrl);
+      btn.textContent = '✅ 已复制';
+      showToast('✅ 已复制（base64格式）');
+    } catch (e2) {
+      btn.textContent = '❌ 复制失败';
+      showToast('复制失败，请尝试保存图片');
+    }
+  }
+  setTimeout(() => {
+    btn.textContent = orig;
+    btn.disabled = false;
+  }, 2000);
+}
+
+// Download image to device
+function downloadShareImage() {
+  if (!shareCanvas) return;
+  const link = document.createElement('a');
+  link.download = '今天吃什么.png';
+  link.href = shareCanvas.toDataURL('image/png');
+  link.click();
+  showToast('✅ 图片已保存');
+}
+
+// ============================
+//  UTILS
+// ============================
+function getDateStr(offset = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function getDateStrFrom(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function timeAgo(dateStr) {
+  if (!dateStr) return '很久以前';
+  const d = new Date(dateStr);
+  const now = new Date();
+  const diff = Math.floor((now - d) / (1000 * 60 * 60 * 24));
+  if (diff === 0) return '今天';
+  if (diff === 1) return '昨天';
+  return `${diff}天前`;
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  t.addEventListener('animationend', (e) => {
+    if (e.animationName === 'toastOut') t.remove();
+  });
+}
+
+function clearHistory() {
+  const data = load();
+  data.history = {};
+  save(data);
+  renderAll();
+  showToast('🗑️ 历史记录已清空');
+}
+
+function resetAll() {
+  document.getElementById('resetOverlay').classList.add('show');
+}
+function doReset() {
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(PRESETS_KEY);
+  document.getElementById('resetOverlay').classList.remove('show');
+  document.getElementById('resultArea').classList.remove('show');
+  currentAngle = 0;
+  particles = [];
+  renderAll();
+  showToast('🔄 已全部重置');
+}
+
+// ============================
+//  RENDER ALL
+// ============================
+function renderAll() {
+  const data = load();
+
+  // Options list
+  const list = document.getElementById('optionList');
+  if (data.options.length === 0) {
+    list.innerHTML = `<span style="color:#555;font-size:0.8rem;">还没有选项</span>
+      <button class="btn" onclick="loadPreset('banshichang')" style="margin-top:6px;width:100%;">🏢 恢复默认选项（公司附近）</button>`;
+  } else {
+    list.innerHTML = data.options.map((o, i) =>
+      `<span class="option-item">${o.emoji} ${o.name}<span class="del" onclick="removeOption(${i})" title="删除">✕</span></span>`
+    ).join('');
+  }
+  document.getElementById('optionCount').textContent = data.options.length + '项';
+
+  // Update preset tag states — highlight the active category
+  const activeKey = data.activePreset || 'banshichang';
+  document.querySelectorAll('.preset-tag').forEach(tag => {
+    const presetKey = tag.dataset.preset;
+    if (presetKey === activeKey) {
+      tag.classList.add('used');
+    } else {
+      tag.classList.remove('used');
+    }
+  });
+
+  // Wheel
+  renderWheel();
+
+  // Calendar
+  renderCalendar();
+  if (historyTab === 'stats') renderStats();
+}
+
+// Input: Enter to add
+document.getElementById('addInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') addOption();
+});
+
+// ============================
+//  INIT
+// ============================
+(function init() {
+  const data = load();
+  // Ensure editable presets exist (first-run seed)
+  const presets = loadPresets();
+  // If options empty, load from active preset (with hardcoded fallback if category was cleared)
+  if (data.options.length === 0) {
+    const key = data.activePreset || 'banshichang';
+    let source = presets[key];
+    if (!source || source.length < 2) source = PRESETS[key]; // fallback to hardcoded
+    if (!source || source.length < 2) source = PRESETS.banshichang;
+    data.options = source.map(item => ({ ...item }));
+    // Also restore the editable preset so it's not stuck empty
+    if (!presets[key] || presets[key].length < 2) {
+      presets[key] = source.map(item => ({ ...item }));
+      savePresets(presets);
+    }
+    save(data);
+  }
+  renderAll();
+
+  // Continue rendering particles — only when needed
+  let particleLoopRunning = false;
+  function particleLoop() {
+    if (particles.length > 0) {
+      updateParticles();
+    }
+    if (particles.length > 0 || spinState === 'spinning') {
+      requestAnimationFrame(particleLoop);
+    } else {
+      particleLoopRunning = false;
+    }
+  }
+  function ensureParticleLoop() {
+    if (!particleLoopRunning) {
+      particleLoopRunning = true;
+      requestAnimationFrame(particleLoop);
+    }
+  }
+  // Expose so spawners can restart the loop
+  window._ensureParticleLoop = ensureParticleLoop;
+  // Start initially in case there are leftover particles
+  if (particles.length > 0) ensureParticleLoop();
+
+  // Click/touch wheel to spin
+  document.getElementById('wheelCanvas').addEventListener('click', () => {
+    if (spinState === 'idle') spin();
+  });
+})();
+</script>
+
+</body>
+</html>

@@ -555,11 +555,11 @@ var _hmt = _hmt || [];
   <div class="share-dialog" onclick="event.stopPropagation()">
     <p>📤 分享今天吃啥</p>
     <img id="shareImage" src="" alt="分享图">
+    <p style="font-size:0.7rem;color:#666;margin:4px 0;">长按上方图片可保存到相册</p>
     <div style="display:flex;gap:8px;">
-      <button class="btn accent" style="flex:1;" id="copyShareBtn" onclick="copyShareImage()">📋 复制图片</button>
-      <button class="btn" style="flex:1;" onclick="downloadShareImage()">💾 保存图片</button>
+      <button class="btn accent" style="flex:1;" id="saveShareBtn" onclick="downloadShareImage()">💾 保存图片</button>
+      <button class="btn" style="flex:1;" onclick="closeShare()">关闭</button>
     </div>
-    <button class="btn ghost" style="width:100%;margin-top:8px;" onclick="closeShare()">关闭</button>
   </div>
 </div>
 
@@ -1415,46 +1415,35 @@ function closeShare() {
   shareCanvas = null;
 }
 
-// Copy image to clipboard (chupian-style: paste directly into WeChat)
-async function copyShareImage() {
-  if (!shareCanvas) return;
-  const btn = document.getElementById('copyShareBtn');
-  const orig = btn.textContent;
-  btn.disabled = true;
-  btn.textContent = '⏳ 复制中...';
-  try {
-    const blob = await new Promise((resolve, reject) => {
-      shareCanvas.toBlob(b => b ? resolve(b) : reject(new Error('blob failed')), 'image/png');
-    });
-    const item = new ClipboardItem({ 'image/png': blob });
-    await navigator.clipboard.write([item]);
-    btn.textContent = '✅ 已复制，去微信粘贴';
-    showToast('✅ 图片已复制，去微信粘贴即可');
-  } catch (e) {
-    try {
-      const dataUrl = shareCanvas.toDataURL('image/png');
-      await navigator.clipboard.writeText(dataUrl);
-      btn.textContent = '✅ 已复制';
-      showToast('✅ 已复制（base64格式）');
-    } catch (e2) {
-      btn.textContent = '❌ 复制失败';
-      showToast('复制失败，请尝试保存图片');
-    }
-  }
-  setTimeout(() => {
-    btn.textContent = orig;
-    btn.disabled = false;
-  }, 2000);
-}
-
-// Download image to device
+// Save image — works across WeChat / mobile / desktop
 function downloadShareImage() {
   if (!shareCanvas) return;
-  const link = document.createElement('a');
-  link.download = '今天吃什么.png';
-  link.href = shareCanvas.toDataURL('image/png');
-  link.click();
-  showToast('✅ 图片已保存');
+  const btn = document.getElementById('saveShareBtn');
+  const orig = btn.textContent;
+
+  // Convert canvas to blob, then open in new tab for long-press save (WeChat-compatible)
+  shareCanvas.toBlob(function(blob) {
+    const url = URL.createObjectURL(blob);
+
+    // Desktop: trigger download
+    const link = document.createElement('a');
+    link.download = '今天吃什么.png';
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Mobile/WeChat fallback: open image in new tab for long-press
+    setTimeout(function() {
+      window.open(url, '_blank');
+    }, 300);
+
+    btn.textContent = '✅ 已保存';
+    showToast('💾 如未下载，长按弹窗中的图片保存');
+    setTimeout(function() {
+      btn.textContent = orig;
+    }, 2000);
+  }, 'image/png');
 }
 
 // ============================
